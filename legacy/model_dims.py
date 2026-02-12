@@ -287,7 +287,7 @@ def main():
             thresh = dmean + 1.0 * dstd
             pit_mask = (diff > thresh).astype('uint8') * 255
             contours, _ = cv.findContours(pit_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        
+
         if contours:
             # choose largest area in pixels
             areas = [cv.contourArea(c) for c in contours]

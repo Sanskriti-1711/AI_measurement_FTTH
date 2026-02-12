@@ -62,13 +62,10 @@ def load_mesh(model_path: str) -> (trimesh.Trimesh, dict):
 def get_units(model_path: str, obj_meta: dict, mesh: trimesh.Trimesh) -> str:
     """Infer units from metadata or mesh extents."""
     if obj_meta.get('Unit'):
-        u = obj_meta.get('Unit').strip().lower()
-        if u.startswith(('mm', 'milli')):
-            return 'mm'
-        if u.startswith(('cm', 'centi')):
-            return 'cm'
-        if u.startswith(('m', 'meter', 'metre')):
-            return 'm'
+        u = obj_meta.get('Unit').lower()
+        if u.startswith('m'): return 'm'
+        if u.startswith('cm'): return 'cm'
+        if u.startswith('mm'): return 'mm'
 
     if model_path.lower().endswith(('.glb', '.gltf')):
         return 'm'
