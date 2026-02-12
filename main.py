@@ -23,8 +23,12 @@ def main():
 
         print("\nMeasurement Results:")
         print(f"Detected Type: {results['detected_type']}")
-        for k, v in results['measurements_mm'].items():
-            print(f"  {k}: {v:.2f} mm")
+        print(f"Scale Valid: {results['scale_valid']} ({results['validation_reason']})")
+        for k, v in results['measurements_m'].items():
+            if k == 'confidence':
+                print(f"  {k}: {v:.2f}")
+            else:
+                print(f"  {k}: {v:.4f} m")
 
     except Exception as e:
         print(f"Error processing model: {e}")
