@@ -1,0 +1,7 @@
+trimesh[all]
+numpy
+opencv-python
+pandas
+scipy
+scikit-learn
+shapely
