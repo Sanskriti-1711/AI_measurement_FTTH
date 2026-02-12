@@ -124,14 +124,14 @@ def main():
 
     # If OBJ header contains Unit, trust it
     if obj_meta.get('Unit'):
-        assumed_unit = obj_meta.get('Unit').strip().lower()
+        assumed_unit = obj_meta.get('Unit').lower()
         # normalize common names
-        if assumed_unit.startswith(('mm', 'milli')):
-            assumed_unit = 'mm'
-        elif assumed_unit.startswith(('cm', 'centi')):
-            assumed_unit = 'cm'
-        elif assumed_unit.startswith(('m', 'meter', 'metre')):
+        if assumed_unit.startswith('m'):
             assumed_unit = 'm'
+        elif assumed_unit.startswith('cm'):
+            assumed_unit = 'cm'
+        elif assumed_unit.startswith('mm'):
+            assumed_unit = 'mm'
         else:
             assumed_unit = obj_meta.get('Unit')
         confidence = 0.99
