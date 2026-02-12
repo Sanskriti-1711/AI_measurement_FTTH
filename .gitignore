@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+out/
+legacy/
+data/
+*.obj
+*.mtl
+*.jpg
+*.jpeg
+*.png
+.DS_Store
