@@ -5,7 +5,7 @@ import numpy as np
 import trimesh
 from src.utils.mesh_io import load_mesh, get_units, find_model_file
 from src.utils.geometry import find_ground_plane, align_mesh_to_plane
-from src.measurers import measure_rectangular, measure_circular, classify_feature
+from src.measurers import measure_rectangular, measure_circular, classify_feature, validate_scale
 
 class MeasurementProcessor:
     def __init__(self, input_path, out_dir='out'):
@@ -46,7 +46,8 @@ class MeasurementProcessor:
 
         # 3. Segmentation
         print("[3/6] Segmenting cavity from ground...")
-        threshold = -0.01 # 1cm below ground
+        # Use a slightly more aggressive threshold to avoid ground noise
+        threshold = -0.03 # 3cm below ground
         cavity_mask = mesh.vertices[:, 2] < threshold
 
         if not np.any(cavity_mask):
@@ -61,10 +62,15 @@ class MeasurementProcessor:
         if not np.any(face_mask):
              cavity_mesh = trimesh.Trimesh(vertices=mesh.vertices[cavity_mask])
         else:
-             submesh = mesh.submesh([face_mask])[0]
-             # Split into individual objects and take the largest one
-             components = submesh.split(only_watertight=False)
-             cavity_mesh = max(components, key=lambda m: len(m.vertices))
+             cavity_mesh = mesh.submesh([face_mask])[0]
+             # Optionally remove tiny components
+             components = cavity_mesh.split(only_watertight=False)
+             if len(components) > 1:
+                 # Keep components that have at least 15% of the total vertices
+                 total_v = len(cavity_mesh.vertices)
+                 keep = [c for c in components if len(c.vertices) > total_v * 0.15]
+                 if keep:
+                     cavity_mesh = trimesh.util.concatenate(keep)
 
         if len(cavity_mesh.vertices) < 50:
              print("Error: Detected cavity is too small and likely noise.")
@@ -82,15 +88,21 @@ class MeasurementProcessor:
         else:
             dims = measure_circular(cavity_mesh)
 
+        # 7. Validation & Confidence
+        is_valid, reason = validate_scale(obj_type, dims)
+
         results = {
             "file": model_file,
             "detected_type": obj_type,
             "unit": "meters",
-            "measurements": dims,
+            "scale_valid": is_valid,
+            "validation_reason": reason,
+            "measurements_m": dims,
             "metadata": meta
         }
-        results["measurements_mm"] = {k: v * 1000 for k, v in dims.items()}
-        results["measurements_cm"] = {k: v * 100 for k, v in dims.items()}
+        # Add mm and cm conversions for ease of use
+        results["measurements_mm"] = {k: (v * 1000 if isinstance(v, float) and k != 'confidence' else v) for k, v in dims.items()}
+        results["measurements_cm"] = {k: (v * 100 if isinstance(v, float) and k != 'confidence' else v) for k, v in dims.items()}
 
         try:
             self.generate_debug_image(mesh, cavity_mesh, results)
@@ -122,8 +134,12 @@ class MeasurementProcessor:
 
         cv.putText(img, f"Type: {results['detected_type']}", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         y = 60
-        for k, v in results['measurements_mm'].items():
-            cv.putText(img, f"{k}: {v:.1f} mm", (10, y), cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+        for k, v in results['measurements_m'].items():
+            if k == 'confidence':
+                line = f"Conf: {v:.2f}"
+            else:
+                line = f"{k}: {v:.3f} m"
+            cv.putText(img, line, (10, y), cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
             y += 25
         cv.imwrite(os.path.join(self.out_dir, 'debug_view.png'), img)
 

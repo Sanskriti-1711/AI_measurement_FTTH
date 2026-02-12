@@ -18,7 +18,10 @@ The tool analyzes the 2D footprint of the segmented feature to classify it:
 - **Circular Manhole/Duct**: High circularity (based on Convex Hull to OBB area ratio).
 - **Rectangular Manhole/Handhole**: Low aspect ratio, rectangular footprint.
 
-### 4. Precision Measurement
+### 4. Scale Validation
+Dimensions are cross-referenced against standard infrastructure ranges (e.g., manholes between 60cm and 150cm). If a measurement is wildly outside these bounds, it is flagged for review.
+
+### 5. Precision Measurement
 - **Rectangular Features**: Uses a **2D Oriented Bounding Box (OBB)** algorithm on the XY projection to find the true length and width, regardless of the trench's orientation in the scan.
 - **Circular Features**: Uses a **Robust Least Squares Circle Fit** to determine the exact diameter and circumference.
 - **Depth**: Calculated using high-percentile statistics from the Z-axis distribution to ignore noise at the bottom of the cavity.
