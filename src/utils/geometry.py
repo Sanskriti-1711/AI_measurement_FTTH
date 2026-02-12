@@ -39,7 +39,9 @@ def find_ground_plane(mesh: trimesh.Trimesh):
 
     # Sample for RANSAC
     if len(points) > 20000:
-        idx = np.random.choice(len(points), 20000, replace=False)
+        # Fixed seed for deterministic point sampling
+        rng = np.random.default_rng(42)
+        idx = rng.choice(len(points), 20000, replace=False)
         points = points[idx]
 
     # 3. Fit plane: Dependent variable is the Up axis
@@ -47,7 +49,8 @@ def find_ground_plane(mesh: trimesh.Trimesh):
     X = points[:, other_axes]
     y = points[:, up_axis]
 
-    ransac = RANSACRegressor(residual_threshold=0.01) # 1cm
+    # Fixed random_state for deterministic RANSAC
+    ransac = RANSACRegressor(residual_threshold=0.01, random_state=42)
     ransac.fit(X, y)
 
     coef = ransac.estimator_.coef_
