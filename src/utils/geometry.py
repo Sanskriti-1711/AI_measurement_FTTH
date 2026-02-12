@@ -8,15 +8,28 @@ def find_ground_plane(mesh: trimesh.Trimesh):
     Returns (plane_origin, plane_normal).
 
     Approach:
-    1. Filter vertices to keep only those with normals pointing roughly 'up'.
-    2. Use RANSAC (Random Sample Consensus) to robustly fit a plane to the vertices.
-       RANSAC is ideal here as it ignores 'outliers' like the cavity itself.
-    3. The plane equation is used to determine the ground level.
+    1. Detect the "Up" axis by looking at vertex normals.
+    2. Use RANSAC to fit a plane perpendicular to that axis.
     """
     print("Finding ground plane...")
+
+    # 1. Determine which axis is "up" (has most vertical normals)
     if hasattr(mesh, 'vertex_normals'):
-        normals = mesh.vertex_normals
-        up_mask = np.abs(normals[:, 2]) > 0.7
+        # Check X, Y, Z axes
+        axis_counts = []
+        for i in range(3):
+            count = np.sum(np.abs(mesh.vertex_normals[:, i]) > 0.8)
+            axis_counts.append(count)
+        up_axis = np.argmax(axis_counts)
+    else:
+        # Fallback: check extents (usually depth is the smallest extent in a scan)
+        up_axis = np.argmin(mesh.extents)
+
+    print(f"      [Debug] Detected Up axis: {['X','Y','Z'][up_axis]}")
+
+    # 2. Filter points with normals roughly along the Up axis
+    if hasattr(mesh, 'vertex_normals'):
+        up_mask = np.abs(mesh.vertex_normals[:, up_axis]) > 0.7
         points = mesh.vertices[up_mask]
     else:
         points = mesh.vertices
@@ -24,26 +37,35 @@ def find_ground_plane(mesh: trimesh.Trimesh):
     if len(points) < 10:
         points = mesh.vertices
 
+    # Sample for RANSAC
     if len(points) > 20000:
         idx = np.random.choice(len(points), 20000, replace=False)
         points = points[idx]
 
-    X = points[:, :2]
-    y = points[:, 2]
+    # 3. Fit plane: Dependent variable is the Up axis
+    other_axes = [i for i in range(3) if i != up_axis]
+    X = points[:, other_axes]
+    y = points[:, up_axis]
 
-    ransac = RANSACRegressor(residual_threshold=0.01)
+    ransac = RANSACRegressor(residual_threshold=0.01) # 1cm
     ransac.fit(X, y)
 
-    a, b = ransac.estimator_.coef_
-    c = ransac.estimator_.intercept_
+    coef = ransac.estimator_.coef_
+    intercept = ransac.estimator_.intercept_
 
-    normal = np.array([a, b, -1.0])
+    # Construct normal
+    normal = np.zeros(3)
+    normal[up_axis] = -1.0
+    normal[other_axes[0]] = coef[0]
+    normal[other_axes[1]] = coef[1]
     normal /= np.linalg.norm(normal)
 
-    if normal[2] < 0:
+    # Ensure normal points in the "positive" direction of the detected axis
+    if normal[up_axis] < 0:
         normal = -normal
 
-    origin = np.array([0, 0, c])
+    origin = np.zeros(3)
+    origin[up_axis] = intercept
 
     return origin, normal
 

@@ -14,8 +14,8 @@ The system is built as a modular Python application, allowing for easy integrati
 ## 3. The Measurement Methodology
 The pipeline follows a 6-step automated process:
 
-### Step 1: Automatic Ground Alignment (RANSAC)
-Most scans are captured at an angle. The tool uses **RANSAC (Random Sample Consensus)** to find the flat ground surface. It then "levels" the entire 3D model so that the ground is exactly at height zero ($Z=0$). This makes depth measurements perfectly vertical and accurate.
+### Step 1: Automatic Axis & Ground Alignment (RANSAC)
+Most scans are captured at an angle, and different devices use different "Up" axes (e.g., Y-up vs Z-up). The tool automatically detects the orientation of the scan by analyzing vertex normals. It then uses **RANSAC (Random Sample Consensus)** to find the flat ground surface and levels the model so that ground is exactly at $Z=0$. This ensures depth is always measured vertically.
 
 ### Step 2: Cavity Segmentation
 The tool identifies the "negative space"—the part of the scan that goes into the ground. It isolates the trench or pit from the surrounding environment (like the street or grass).
@@ -26,9 +26,10 @@ The system analyzes the "footprint" of the object to determine what it is:
 *   **Manhole/Handhole**: Square or slightly rounded box.
 *   **Duct/Circular Manhole**: Circular shape.
 
-### Step 4: Precision Geometric Fitting
-*   **For Rectangles**: We use a **2D Oriented Bounding Box (OBB)**. This finds the true length and width regardless of which way the scanner was facing.
-*   **For Circles**: We use a **Robust Least Squares Circle Fit**. This finds the exact center and diameter even if the scan is slightly incomplete.
+### Step 4: Precision Geometric Fitting (Slice-based Median)
+To achieve maximum accuracy and handle slanted or irregular walls:
+*   **Horizontal Slicing**: The tool takes multiple horizontal slices through the cavity at different depths.
+*   **Median Fitting**: It fits an **Oriented Bounding Box (OBB)** or Circle to each slice and takes the **median** dimension. This ignores noise from the rim or debris at the bottom, providing the most stable "true" dimensions.
 
 ### Step 5: Scale Validation
 The tool has "sanity checks" built-in. It knows a typical manhole isn't 10 meters wide. If the measurements are outside standard infrastructure ranges, the tool flags the result as "Invalid" for human review.

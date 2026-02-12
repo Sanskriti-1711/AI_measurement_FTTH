@@ -37,24 +37,33 @@ def measure_rectangular(mesh: trimesh.Trimesh):
     depth = np.abs(np.percentile(points[:, 2], 5))
 
     # Slice-based refinement (for tapered walls)
-    # We slice at 25%, 50%, and 75% of the depth
+    # We slice at multiple levels to find the most consistent dimensions
+    # Standard measurement for pits is often the average width/length.
+    z_max = 0 # ground
     z_min = np.percentile(points[:, 2], 5)
-    slices = []
-    for level in [0.25, 0.5, 0.75]:
-        target_z = z_min * level
-        mask = np.abs(points[:, 2] - target_z) < 0.02 # 2cm window
-        if np.any(mask):
-            slice_pts = MultiPoint(points[mask, :2]).minimum_rotated_rectangle
-            if slice_pts.geom_type == 'Polygon':
-                sx, sy = slice_pts.exterior.coords.xy
-                sd1 = np.sqrt((sx[1]-sx[0])**2 + (sy[1]-sy[0])**2)
-                sd2 = np.sqrt((sx[2]-sx[1])**2 + (sy[2]-sy[1])**2)
-                slices.append(sorted([sd1, sd2]))
 
-    # The user suggests OBB is very reliable for rectangular assets.
-    # We use the dimensions from the 2D projection of the entire feature
-    # as it captures the full footprint (rim + walls + bottom).
-    width_refined, length_refined = width, length
+    slices = []
+    # Take 5 slices through the cavity
+    for level in np.linspace(0.2, 0.8, 5):
+        target_z = z_min * level
+        mask = np.abs(points[:, 2] - target_z) < 0.01 # 1cm window
+        if np.sum(mask) > 20:
+            from shapely.geometry import MultiPoint
+            try:
+                slice_pts = MultiPoint(points[mask, :2]).minimum_rotated_rectangle
+                if slice_pts.geom_type == 'Polygon':
+                    sx, sy = slice_pts.exterior.coords.xy
+                    sd1 = np.sqrt((sx[1]-sx[0])**2 + (sy[1]-sy[0])**2)
+                    sd2 = np.sqrt((sx[2]-sx[1])**2 + (sy[2]-sy[1])**2)
+                    slices.append(sorted([sd1, sd2]))
+            except:
+                pass
+
+    if slices:
+        # Use median of slices to be robust against outliers/rim noise
+        width_refined, length_refined = np.median(slices, axis=0)
+    else:
+        width_refined, length_refined = width, length
 
     # Fit residual (standard deviation of the points from the OBB edges in the middle slice)
     confidence = 1.0
@@ -123,11 +132,12 @@ def validate_scale(obj_type, dims):
     Returns (is_valid, reason).
     """
     # Typical ranges in meters
+    # Standard infrastructure ranges in meters
     RANGES = {
         'duct': {'diameter': (0.05, 0.25)},
-        'circular_manhole': {'diameter': (0.5, 1.6)},
-        'manhole': {'width': (0.3, 1.5), 'length': (0.4, 2.5)},
-        'trench': {'width': (0.2, 1.5)}
+        'circular_manhole': {'diameter': (0.4, 1.6)},
+        'manhole': {'width': (0.15, 1.5), 'length': (0.2, 2.5)},
+        'trench': {'width': (0.15, 1.5)}
     }
 
     if obj_type not in RANGES:
