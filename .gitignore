@@ -1,7 +1,6 @@
 __pycache__/
 *.pyc
 out/
-legacy/
 data/
 *.obj
 *.mtl
