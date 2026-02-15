@@ -35,11 +35,46 @@ def parse_obj_header_for_metadata(obj_path: str):
         pass
     return meta
 
-def load_mesh(model_path: str) -> (trimesh.Trimesh, dict):
+def parse_ply_header_for_metadata(ply_path: str):
+    """Read PLY header comments for metadata such as unit annotations."""
+    meta = {}
+    try:
+        with open(ply_path, 'rb') as f:
+            # PLY header is ASCII even for binary PLY payloads.
+            for _ in range(200):
+                line = f.readline()
+                if not line:
+                    break
+                text = line.decode('utf8', errors='ignore').strip()
+                if text == 'end_header':
+                    break
+                # Examples:
+                # comment Unit: meter
+                # comment units=mm
+                if text.lower().startswith('comment'):
+                    body = text[len('comment'):].strip()
+                    if ':' in body:
+                        k, v = body.split(':', 1)
+                        meta[k.strip()] = v.strip()
+                    elif '=' in body:
+                        k, v = body.split('=', 1)
+                        meta[k.strip()] = v.strip()
+    except Exception:
+        pass
+    return meta
+
+def load_mesh(
+    model_path: str,
+    decimate_threshold: int = 100000,
+    decimate_target: int = 50000,
+    disable_decimation: bool = False
+) -> (trimesh.Trimesh, dict):
     """Load mesh and return it along with metadata."""
-    obj_meta = {}
+    metadata = {}
     if model_path.lower().endswith('.obj'):
-        obj_meta = parse_obj_header_for_metadata(model_path)
+        metadata = parse_obj_header_for_metadata(model_path)
+    elif model_path.lower().endswith('.ply'):
+        metadata = parse_ply_header_for_metadata(model_path)
 
     # Try to load without materials to save memory
     try:
@@ -51,21 +86,50 @@ def load_mesh(model_path: str) -> (trimesh.Trimesh, dict):
         if len(loaded.geometry) == 0:
             raise ValueError("Loaded scene has no geometry")
         mesh = trimesh.util.concatenate(list(loaded.geometry.values()))
+    elif isinstance(loaded, trimesh.points.PointCloud):
+        # Normalize point clouds into a face-less Trimesh so downstream code can
+        # use a single mesh-like interface.
+        mesh = trimesh.Trimesh(
+            vertices=np.asarray(loaded.vertices),
+            faces=np.empty((0, 3), dtype=np.int64),
+            process=False,
+        )
     else:
         mesh = loaded
 
-    if len(mesh.vertices) > 100000:
-        mesh = mesh.simplify_quadratic_decimation(50000)
+    if (
+        not disable_decimation
+        and decimate_threshold > 0
+        and decimate_target > 0
+        and decimate_target < len(mesh.vertices)
+        and hasattr(mesh, 'faces')
+        and len(mesh.faces) > 0
+        and len(mesh.vertices) > decimate_threshold
+    ):
+        try:
+            mesh = mesh.simplify_quadratic_decimation(decimate_target)
+        except Exception:
+            # Keep original mesh if decimation backend is unavailable.
+            pass
 
-    return mesh, obj_meta
+    return mesh, metadata
 
-def get_units(model_path: str, obj_meta: dict, mesh: trimesh.Trimesh) -> str:
+def get_units(model_path: str, metadata: dict, mesh: trimesh.Trimesh) -> str:
     """Infer units from metadata or mesh extents."""
-    if obj_meta.get('Unit'):
-        u = obj_meta.get('Unit').lower()
-        if u.startswith('m'): return 'm'
-        if u.startswith('cm'): return 'cm'
-        if u.startswith('mm'): return 'mm'
+    raw_unit = (
+        metadata.get('Unit')
+        or metadata.get('unit')
+        or metadata.get('Units')
+        or metadata.get('units')
+    )
+    if raw_unit:
+        u = str(raw_unit).strip().lower()
+        if u.startswith(('mm', 'milli')):
+            return 'mm'
+        if u.startswith(('cm', 'centi')):
+            return 'cm'
+        if u.startswith(('m', 'meter', 'metre')):
+            return 'm'
 
     if model_path.lower().endswith(('.glb', '.gltf')):
         return 'm'

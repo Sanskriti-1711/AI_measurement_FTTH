@@ -8,9 +8,19 @@ from src.utils.geometry import find_ground_plane, align_mesh_to_plane
 from src.measurers import measure_rectangular, measure_circular, classify_feature, validate_scale
 
 class MeasurementProcessor:
-    def __init__(self, input_path, out_dir='out'):
+    def __init__(
+        self,
+        input_path,
+        out_dir='out',
+        decimate_threshold=100000,
+        decimate_target=50000,
+        disable_decimation=False,
+    ):
         self.input_path = input_path
         self.out_dir = out_dir
+        self.decimate_threshold = decimate_threshold
+        self.decimate_target = decimate_target
+        self.disable_decimation = disable_decimation
         os.makedirs(out_dir, exist_ok=True)
 
     def process(self):
@@ -30,7 +40,12 @@ class MeasurementProcessor:
         # 1. Load Model
         print("[1/6] Loading model...")
         model_file = find_model_file(self.input_path)
-        mesh, meta = load_mesh(model_file)
+        mesh, meta = load_mesh(
+            model_file,
+            decimate_threshold=self.decimate_threshold,
+            decimate_target=self.decimate_target,
+            disable_decimation=self.disable_decimation,
+        )
         unit = get_units(model_file, meta, mesh)
         print(f"      Detected units: {unit}. Normalizing to meters...")
 
@@ -57,7 +72,10 @@ class MeasurementProcessor:
         # 4. Cleaning & Sub-mesh Extraction
         print("[4/6] Extracting largest connected component...")
         vertex_indices = np.where(cavity_mask)[0]
-        face_mask = np.all(np.isin(mesh.faces, vertex_indices), axis=1)
+        if hasattr(mesh, 'faces') and len(mesh.faces) > 0:
+            face_mask = np.all(np.isin(mesh.faces, vertex_indices), axis=1)
+        else:
+            face_mask = np.array([], dtype=bool)
 
         if not np.any(face_mask):
              cavity_mesh = trimesh.Trimesh(vertices=mesh.vertices[cavity_mask])
