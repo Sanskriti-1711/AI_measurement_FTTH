@@ -370,27 +370,6 @@ def process_pair(rgb_path, mask_or_depth_path, depth_path=None, out_dir="out", p
 
     print(f"Scale detected (px/mm): {scale_px_per_mm}")
 
-    # If still no scale, but user provided a model JSON, try to infer px/mm by matching
-    # the measured trench length (px) to the model's largest extent (mm).
-    if scale_px_per_mm is None and model_json is not None:
-        try:
-            import json
-            with open(model_json, 'r', encoding='utf8') as f:
-                mj = json.load(f)
-            # prefer extents_mm in JSON
-            model_extents_mm = mj.get('extents_mm') or mj.get('extents_m')
-            if model_extents_mm:
-                # if extents_m provided, convert to mm
-                if mj.get('extents_m') and not mj.get('extents_mm'):
-                    model_extents_mm = [e * 1000.0 for e in mj['extents_m']]
-
-                model_max_mm = float(max(model_extents_mm))
-                if model_max_mm > 0:
-                    scale_px_per_mm = length_px / model_max_mm
-                    print(f"Inferred scale from model_json: {scale_px_per_mm} px/mm (using model max extent {model_max_mm} mm)")
-        except Exception as e:
-            print('Failed to use model_json for scale inference:', e)
-
     mask = segment_trench_blue(md)
     cnt = largest_component(mask)
     # detect pit (hole) if present
@@ -417,6 +396,28 @@ def process_pair(rgb_path, mask_or_depth_path, depth_path=None, out_dir="out", p
 
     center, length_px, width_px, angle, rect = min_area_rect_dims(cnt)
     profile = width_profile_along_trench(mask, bins=70)
+
+    # If still no scale, but user provided a model JSON, infer px/mm by matching
+    # measured trench length (px) to the model's largest extent (mm).
+    if scale_px_per_mm is None and model_json is not None:
+        try:
+            import json
+            with open(model_json, "r", encoding="utf8") as f:
+                mj = json.load(f)
+            model_extents_mm = mj.get("extents_mm")
+            if not model_extents_mm and mj.get("extents_m"):
+                model_extents_mm = [e * 1000.0 for e in mj["extents_m"]]
+
+            if model_extents_mm:
+                model_max_mm = float(max(model_extents_mm))
+                if model_max_mm > 0:
+                    scale_px_per_mm = length_px / model_max_mm
+                    print(
+                        f"Inferred scale from model_json: {scale_px_per_mm} px/mm "
+                        f"(using model max extent {model_max_mm} mm)"
+                    )
+        except Exception as e:
+            print("Failed to use model_json for scale inference:", e)
 
     depth_stats = None
     if depth_path:
@@ -541,18 +542,21 @@ if __name__ == "__main__":
     # Flatten width profile to a CSV
     if res["status"] == "ok":
         prof = pd.DataFrame(res["width_profile"], columns=["t_0_1", "width_px"])
-        prof.to_csv("out/width_profile.csv", index=False)
+        prof.to_csv(os.path.join(args.out, "width_profile.csv"), index=False)
 
         if res.get("width_profile_mm"):
             prof_mm = pd.DataFrame(res["width_profile_mm"], columns=["t_0_1", "width_mm"])
-            prof_mm.to_csv("out/width_profile_mm.csv", index=False)
+            prof_mm.to_csv(os.path.join(args.out, "width_profile_mm.csv"), index=False)
 
     pd.DataFrame([{
         k: v for k, v in res.items() if k not in ("width_profile", "width_profile_mm")
-    }]).to_csv("out/summary.csv", index=False)
+    }]).to_csv(os.path.join(args.out, "summary.csv"), index=False)
 
-    files_saved = ["out/summary.csv", "out/width_profile.csv"]
+    files_saved = [
+        os.path.join(args.out, "summary.csv"),
+        os.path.join(args.out, "width_profile.csv"),
+    ]
     if res.get("width_profile_mm"):
-        files_saved.append("out/width_profile_mm.csv")
+        files_saved.append(os.path.join(args.out, "width_profile_mm.csv"))
     files_saved.append(res.get("debug"))
     print("Saved:", ", ".join(files_saved))
