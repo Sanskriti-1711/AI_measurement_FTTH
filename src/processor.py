@@ -3,15 +3,56 @@ import sys
 import json
 import numpy as np
 import trimesh
+from sklearn.cluster import DBSCAN
+from sklearn.neighbors import NearestNeighbors
 from src.utils.mesh_io import load_mesh, get_units, find_model_file
 from src.utils.geometry import find_ground_plane, align_mesh_to_plane
 from src.measurers import measure_rectangular, measure_circular, classify_feature, validate_scale
 
 class MeasurementProcessor:
-    def __init__(self, input_path, out_dir='out'):
+    def __init__(
+        self,
+        input_path,
+        out_dir='out',
+        decimate_threshold=100000,
+        decimate_target=50000,
+        disable_decimation=False,
+    ):
         self.input_path = input_path
         self.out_dir = out_dir
+        self.decimate_threshold = decimate_threshold
+        self.decimate_target = decimate_target
+        self.disable_decimation = disable_decimation
         os.makedirs(out_dir, exist_ok=True)
+
+    @staticmethod
+    def _extract_largest_point_cluster(points_xyz: np.ndarray) -> np.ndarray:
+        """
+        Keep the largest spatial cluster from point-cloud cavity points.
+        Uses XY clustering because cavities are mostly separable in plan view.
+        """
+        if len(points_xyz) < 200:
+            return points_xyz
+
+        points_xy = points_xyz[:, :2]
+        try:
+            # Estimate neighborhood scale from k-NN distances.
+            nn = NearestNeighbors(n_neighbors=min(8, len(points_xy)))
+            nn.fit(points_xy)
+            dists, _ = nn.kneighbors(points_xy)
+            base = float(np.median(dists[:, -1]))
+            eps = max(0.01, min(0.25, base * 2.5))
+
+            labels = DBSCAN(eps=eps, min_samples=25).fit_predict(points_xy)
+            valid = labels >= 0
+            if not np.any(valid):
+                return points_xyz
+
+            unique, counts = np.unique(labels[valid], return_counts=True)
+            largest_label = unique[np.argmax(counts)]
+            return points_xyz[labels == largest_label]
+        except Exception:
+            return points_xyz
 
     def process(self):
         """
@@ -30,7 +71,12 @@ class MeasurementProcessor:
         # 1. Load Model
         print("[1/6] Loading model...")
         model_file = find_model_file(self.input_path)
-        mesh, meta = load_mesh(model_file)
+        mesh, meta = load_mesh(
+            model_file,
+            decimate_threshold=self.decimate_threshold,
+            decimate_target=self.decimate_target,
+            disable_decimation=self.disable_decimation,
+        )
         unit = get_units(model_file, meta, mesh)
         print(f"      Detected units: {unit}. Normalizing to meters...")
 
@@ -46,9 +92,20 @@ class MeasurementProcessor:
 
         # 3. Segmentation
         print("[3/6] Segmenting cavity from ground...")
-        # Use a slightly more aggressive threshold to avoid ground noise
-        threshold = -0.03 # 3cm below ground
-        cavity_mask = mesh.vertices[:, 2] < threshold
+        is_point_cloud_like = not (hasattr(mesh, 'faces') and len(mesh.faces) > 0)
+        z = mesh.vertices[:, 2]
+
+        # Default threshold tuned for mesh-style scans.
+        threshold = -0.03  # 3cm below ground
+        cavity_mask = z < threshold
+
+        # Point clouds often need adaptive thresholding due to sparse/uneven sampling.
+        if is_point_cloud_like and not np.any(cavity_mask):
+            z10 = float(np.percentile(z, 10))
+            z40 = float(np.percentile(z, 40))
+            threshold = min(-0.005, (z10 + z40) / 2.0)
+            print(f"      [Debug] Adaptive point-cloud threshold: {threshold:.4f} m")
+            cavity_mask = z < threshold
 
         if not np.any(cavity_mask):
             print("Error: No cavity detected below ground level.")
@@ -57,10 +114,20 @@ class MeasurementProcessor:
         # 4. Cleaning & Sub-mesh Extraction
         print("[4/6] Extracting largest connected component...")
         vertex_indices = np.where(cavity_mask)[0]
-        face_mask = np.all(np.isin(mesh.faces, vertex_indices), axis=1)
+        if hasattr(mesh, 'faces') and len(mesh.faces) > 0:
+            face_mask = np.all(np.isin(mesh.faces, vertex_indices), axis=1)
+        else:
+            face_mask = np.array([], dtype=bool)
 
         if not np.any(face_mask):
-             cavity_mesh = trimesh.Trimesh(vertices=mesh.vertices[cavity_mask])
+             cavity_points = mesh.vertices[cavity_mask]
+             if is_point_cloud_like:
+                 cavity_points = self._extract_largest_point_cluster(cavity_points)
+             cavity_mesh = trimesh.Trimesh(
+                 vertices=cavity_points,
+                 faces=np.empty((0, 3), dtype=np.int64),
+                 process=False
+             )
         else:
              cavity_mesh = mesh.submesh([face_mask])[0]
              # Optionally remove tiny components
@@ -114,8 +181,14 @@ class MeasurementProcessor:
 
     def generate_debug_image(self, mesh, cavity_mesh, results):
         import cv2 as cv
-        ext = mesh.extents
         bounds = mesh.bounds
+        ext = mesh.extents
+        if bounds is None or ext is None:
+            pts_np = np.asarray(mesh.vertices)
+            mins = np.min(pts_np, axis=0)
+            maxs = np.max(pts_np, axis=0)
+            bounds = np.vstack([mins, maxs])
+            ext = maxs - mins
         res = 512
         width = ext[0] if ext[0] > 0 else 1
         height = ext[1] if ext[1] > 0 else 1
