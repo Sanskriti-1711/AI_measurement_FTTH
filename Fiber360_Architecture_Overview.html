@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiber360 — System Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --card: #111827;
+  --card-hover: #1a2235;
+  --border: #1e293b;
+  --text: #e2e8f0;
+  --dim: #94a3b8;
+  --blue: #58a6ff;
+  --green: #3fb950;
+  --yellow: #d29922;
+  --orange: #f0883e;
+  --red: #f85149;
+  --purple: #bc8cff;
+  --cyan: #39d2c0;
+  --pink: #f778ba;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Hero ── */
+.hero {
+  text-align: center;
+  padding: 5rem 2rem 4rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -200px; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(57,210,192,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--cyan);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+.hero h1 {
+  font-size: 3.2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, var(--text), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero .sub {
+  font-size: 1.15rem;
+  color: var(--dim);
+  max-width: 650px;
+  margin: 0 auto 2rem;
+}
+.hero .philosophy {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 2rem;
+  font-size: 0.95rem;
+  color: var(--dim);
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.8;
+}
+.hero .philosophy strong { color: var(--cyan); font-weight: 600; }
+
+/* ── Sections ── */
+section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+}
+.sec-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--blue);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.sec-title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+.sec-desc {
+  color: var(--dim);
+  font-size: 0.95rem;
+  max-width: 700px;
+  margin-bottom: 2.5rem;
+}
+.divider {
+  max-width: 1100px;
+  margin: 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* ── Status Banner ── */
+.status-banner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 0 2rem;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+}
+.stat-card .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem;
+  font-weight: 700;
+}
+.stat-card .label {
+  font-size: 0.8rem;
+  color: var(--dim);
+  margin-top: 0.25rem;
+}
+
+/* ── Three Pillars ── */
+.pillars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+@media (max-width: 768px) { .pillars { grid-template-columns: 1fr; } }
+.pillar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.pillar:hover { transform: translateY(-3px); }
+.pillar-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+.pillar h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+.pillar .role {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--cyan);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+.pillar p {
+  font-size: 0.85rem;
+  color: var(--dim);
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+.tech-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: auto;
+}
+.tech-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(88,166,255,0.08);
+  border: 1px solid rgba(88,166,255,0.15);
+  color: var(--blue);
+}
+.tech-tag.green { background: rgba(63,185,80,0.08); border-color: rgba(63,185,80,0.15); color: var(--green); }
+.tech-tag.cyan { background: rgba(57,210,192,0.08); border-color: rgba(57,210,192,0.15); color: var(--cyan); }
+.tech-tag.purple { background: rgba(188,140,255,0.08); border-color: rgba(188,140,255,0.15); color: var(--purple); }
+.tech-tag.orange { background: rgba(240,136,62,0.08); border-color: rgba(240,136,62,0.15); color: var(--orange); }
+.tech-tag.yellow { background: rgba(210,153,34,0.08); border-color: rgba(210,153,34,0.15); color: var(--yellow); }
+.tech-tag.pink { background: rgba(247,120,186,0.08); border-color: rgba(247,120,186,0.15); color: var(--pink); }
+.tech-tag.red { background: rgba(248,81,73,0.08); border-color: rgba(248,81,73,0.15); color: var(--red); }
+
+/* ── Flow Diagram ── */
+.mega-flow {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 2rem 0;
+  overflow-x: auto;
+}
+.mega-flow pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--dim);
+  white-space: pre;
+}
+.mega-flow pre .hl { color: var(--blue); font-weight: 600; }
+.mega-flow pre .gr { color: var(--green); font-weight: 600; }
+.mega-flow pre .yl { color: var(--yellow); font-weight: 600; }
+.mega-flow pre .cy { color: var(--cyan); font-weight: 600; }
+.mega-flow pre .pk { color: var(--pink); font-weight: 600; }
+.mega-flow pre .pr { color: var(--purple); font-weight: 600; }
+.mega-flow pre .or { color: var(--orange); font-weight: 600; }
+.mega-flow pre .rd { color: var(--red); font-weight: 600; }
+
+/* ── Layers ── */
+.layers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+.layer-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: transform 0.2s;
+}
+.layer-card:hover { transform: translateY(-2px); }
+.layer-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+.layer-card h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+.layer-card .where {
+  font-size: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+.layer-card p {
+  font-size: 0.82rem;
+  color: var(--dim);
+  line-height: 1.6;
+  margin-bottom: 0.6rem;
+}
+.layer-card .accuracy {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  margin-bottom: 0.25rem;
+}
+.layer-card .weight {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--dim);
+}
+
+/* ── Confidence Badges ── */
+.conf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+.conf-badge {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+.conf-badge .emoji { font-size: 1.5rem; margin-bottom: 0.5rem; }
+.conf-badge h5 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem; }
+.conf-badge p { font-size: 0.8rem; color: var(--dim); line-height: 1.5; }
+
+/* ── Repo Grid ── */
+.repo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+.repo-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+.repo-card h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+.repo-card .desc {
+  font-size: 0.8rem;
+  color: var(--dim);
+  margin-bottom: 0.75rem;
+}
+.repo-card .stack-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid rgba(30,41,59,0.5);
+  font-size: 0.8rem;
+}
+.repo-card .stack-row:last-child { border-bottom: none; }
+.repo-card .stack-row span:first-child { color: var(--dim); }
+.repo-card .stack-row span:last-child { color: var(--text); font-weight: 500; }
+
+/* ── Status Table ── */
+.status-grid {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2rem 0;
+  font-size: 0.85rem;
+}
+.status-grid th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--border);
+  color: var(--dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.status-grid td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.status-grid tr:hover { background: var(--card-hover); }
+.badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.badge.done { background: rgba(63,185,80,0.12); color: var(--green); }
+.badge.active { background: rgba(88,166,255,0.12); color: var(--blue); }
+.badge.planned { background: rgba(210,153,34,0.12); color: var(--yellow); }
+
+/* ── Footer ── */
+.footer {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--dim);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+}
+
+/* ── Animate ── */
+.animate-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s, transform 0.5s;
+}
+.animate-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="hero-badge">Fiber360 Platform Architecture</div>
+  <h1>AI-Powered FTTH Measurement</h1>
+  <div class="sub">
+    The phone measures → the server verifies → the cloud certifies.
+    If three independent systems agree → it's valid. If they don't → it's flagged.
+  </div>
+  <div class="philosophy">
+    <strong>Anti-tamper by design.</strong> Engineers cannot type in measurements. 
+    The phone's AI measures. The server cross-validates. Multiple independent sources must agree within ±10% tolerance. 
+    Manual entry is blocked by default.
+  </div>
+</div>
+
+<!-- ═══ STATS ═══ -->
+<div class="status-banner animate-in">
+  <div class="stat-card">
+    <div class="num" style="color:var(--cyan);">6</div>
+    <div class="label">Repositories</div>
+  </div>
+  <div class="stat-card">
+    <div class="num" style="color:var(--green);">5</div>
+    <div class="label">Measurement Layers</div>
+  </div>
+  <div class="stat-card">
+    <div class="num" style="color:var(--blue);">15</div>
+    <div class="label">YOLO Detection Classes</div>
+  </div>
+  <div class="stat-card">
+    <div class="num" style="color:var(--purple);">82+</div>
+    <div class="label">API Endpoints</div>
+  </div>
+  <div class="stat-card">
+    <div class="num" style="color:var(--orange);">3</div>
+    <div class="label">AI Models (On-Device + Cloud)</div>
+  </div>
+</div>
+
+<div class="divider" style="margin-top:3rem;"></div>
+
+<!-- ═══ THREE PILLARS ═══ -->
+<section class="animate-in">
+  <div class="sec-tag">System Overview</div>
+  <div class="sec-title">Three Pillars</div>
+  <div class="sec-desc">Mobile captures → Backend processes → Portal manages. Each pillar is independent, connected via REST APIs and real-time sync.</div>
+
+  <div class="pillars">
+    <div class="pillar">
+      <div class="pillar-icon">📱</div>
+      <h3>Mobile App</h3>
+      <div class="role">Field Capture + On-Device AI</div>
+      <p>React Native / Expo app for field engineers. AR measurement (ARKit/ARCore), Photo AI with YOLO detection, 3D scanning with depth capture, BLE laser meter integration, offline-first with SQLite sync queue.</p>
+      <p>Three measurement modes: <strong>AR</strong> (tap-to-measure in augmented reality), <strong>Photo AI</strong> (point camera → auto-detect → auto-measure), and <strong>Laser</strong> (Bluetooth precision meter).</p>
+      <div class="tech-stack">
+        <span class="tech-tag cyan">React Native</span>
+        <span class="tech-tag cyan">Expo SDK 54</span>
+        <span class="tech-tag green">VisionCamera</span>
+        <span class="tech-tag orange">TFLite</span>
+        <span class="tech-tag yellow">ARCore/ARKit</span>
+        <span class="tech-tag purple">BLE</span>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-icon">⚡</div>
+      <h3>Backend Server</h3>
+      <div class="role">API + AI Worker + Verification</div>
+      <p>FastAPI backend with JWT auth and RBAC (admin/planner/engineer). GPU worker runs heavier AI models for server-side verification — YOLO v2 for known classes + Grounding DINO for zero-shot detection of any infrastructure element.</p>
+      <p>PostgreSQL + PostGIS for geospatial data, Redis for task queuing, S3/MinIO for photo storage. Measurement certificates with SHA-256 hash chains.</p>
+      <div class="tech-stack">
+        <span class="tech-tag">FastAPI</span>
+        <span class="tech-tag green">PostgreSQL</span>
+        <span class="tech-tag orange">Redis</span>
+        <span class="tech-tag purple">YOLO + DINO</span>
+        <span class="tech-tag cyan">S3/MinIO</span>
+        <span class="tech-tag yellow">Docker</span>
+      </div>
+    </div>
+
+    <div class="pillar">
+      <div class="pillar-icon">🌐</div>
+      <h3>Web Portal</h3>
+      <div class="role">Project Management + Review</div>
+      <p>Next.js 14 dashboard for project managers. Live project overview, map view with compliance overlay, measurement review with full source breakdown, 3D viewer for scan results, certificate management and PDF export.</p>
+      <p>Role-gated access. Engineers see their assignments. Planners manage projects. Admins manage organizations and users.</p>
+      <div class="tech-stack">
+        <span class="tech-tag">Next.js 14</span>
+        <span class="tech-tag green">React Query</span>
+        <span class="tech-tag cyan">MapLibre</span>
+        <span class="tech-tag purple">Three.js</span>
+        <span class="tech-tag orange">Tailwind</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ END-TO-END FLOW ═══ -->
+<section class="animate-in">
+  <div class="sec-tag">Data Flow</div>
+  <div class="sec-title">End-to-End — Field to Certificate</div>
+  <div class="sec-desc">How a measurement moves from an engineer's phone to a signed certificate.</div>
+
+  <div class="mega-flow">
+    <pre>
+  <span class="cy">📱 MOBILE (Field)</span>                    <span class="hl">⚡ BACKEND (Cloud)</span>                  <span class="gr">🌐 PORTAL (Office)</span>
+  ─────────────────                    ────────────────                  ──────────────────
+
+  Engineer opens Measure tab            
+  ┌──────────────────┐                 
+  │ <span class="yl">Photo AI Mode</span>     │                 
+  │  Camera → Photo   │                 
+  │  YOLO detects     │──── <span class="or">upload</span> ───→  FastAPI receives photo        
+  │  15 infra classes │                  ┌──────────────────┐          
+  │  Auto-measure     │                  │ <span class="pr">YOLO v2 (server)</span> │           Dashboard shows
+  └──────────────────┘                  │  15 known classes │──────→   measurement status:
+                                        │  ~200ms inference │           <span class="gr">🟢 Verified</span>
+  ┌──────────────────┐                  └──────────────────┘           <span class="yl">🟡 Probable</span>
+  │ <span class="gr">AR Mode</span>          │                  ┌──────────────────┐           <span class="or">🟠 Unverified</span>
+  │  ARKit / ARCore   │                  │ <span class="pk">Grounding DINO</span>   │           <span class="rd">🔴 Flagged</span>
+  │  Tap-to-measure   │                  │  Zero-shot detect│
+  │  LiDAR depth      │                  │  Any text prompt │──────→   Map view with
+  └──────────────────┘                  │  ~2-5s inference  │           compliance overlay
+                                        └──────────────────┘
+  ┌──────────────────┐                                                 Measurement review:
+  │ <span class="hl">Laser Mode</span>       │                  ┌──────────────────┐           source breakdown
+  │  BLE connect      │                  │ <span class="gr">Fusion Engine</span>    │           + confidence
+  │  Leica / Bosch    │                  │  Cross-validate  │──────→   + photo + depth map
+  │  ±0.5mm precision │                  │  Weight + merge  │           + anomaly flags
+  └──────────────────┘                  │  Cert signing    │
+                                        └──────────────────┘           3D viewer:
+  ┌──────────────────┐                           │                     PLY/OBJ orbit view
+  │ <span class="pr">3D Scanner</span>       │                           ▼                     measure on model
+  │  Depth capture    │                  ┌──────────────────┐
+  │  Point cloud      │                  │ 📋 <span class="cy">Certificate</span>    │──────→   Download PDF
+  │  Mesh generation  │                  │  SHA-256 hashes  │           measurement report
+  │  PLY/OBJ export   │                  │  GPS + IMU chain │
+  └──────────────────┘                  │  Tamper-proof    │
+                                        └──────────────────┘
+    </pre>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ MEASUREMENT LAYERS ═══ -->
+<section class="animate-in">
+  <div class="sec-tag">Measurement Engine</div>
+  <div class="sec-title">5 Independent Measurement Layers</div>
+  <div class="sec-desc">
+    Multiple independent sources cross-validate each measurement.
+    No single source can be trusted alone — agreement across layers creates confidence.
+  </div>
+
+  <div class="layers-grid">
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--green);">LAYER 1 — ON DEVICE</div>
+      <h4>AR Depth (ARKit / ARCore)</h4>
+      <div class="where" style="color:var(--green);">📱 Runs on phone — newer devices</div>
+      <p>Native Expo module. Tap two points in AR view → real-world distance. LiDAR on iPhone Pro gives cm-level accuracy. ARCore Depth API on 200+ Android devices.</p>
+      <div class="accuracy" style="color:var(--green);">±1cm (LiDAR) · ±5cm (non-LiDAR)</div>
+      <div class="weight">Fusion weight: 0.9 (LiDAR) · 0.7 (visual)</div>
+    </div>
+
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--yellow);">LAYER 2 — ON DEVICE</div>
+      <h4>AI Depth (Depth Anything V2 Small)</h4>
+      <div class="where" style="color:var(--yellow);">📱 Runs on phone — ALL devices</div>
+      <p>25M param TFLite model. Instant depth map from any photo. Used for real-time preview guidance and auto-measurement with pixel-ratio calibration using industry standard infrastructure sizes.</p>
+      <div class="accuracy" style="color:var(--yellow);">±5-10cm (calibrated) — preview grade</div>
+      <div class="weight">Fusion weight: 0.3 (preview, low authority)</div>
+    </div>
+
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--orange);">LAYER 3 — ON DEVICE</div>
+      <h4>YOLO Object Detection (YOLOv8n)</h4>
+      <div class="where" style="color:var(--orange);">📱 Runs on phone — ALL devices</div>
+      <p>6MB custom TFLite model trained on fiber infrastructure. 15 classes: manholes (EN 124), ducts (BS EN 61386), cables, trenches, reference objects, and defects. Auto-detects and auto-measures in real-time.</p>
+      <div class="accuracy" style="color:var(--orange);">Detection: mAP@0.5 > 0.80</div>
+      <div class="weight">Fusion weight: 0.4 (auto-measure)</div>
+    </div>
+
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--cyan);">LAYER 4 — ON DEVICE</div>
+      <h4>BLE Laser Meter</h4>
+      <div class="where" style="color:var(--cyan);">📱 Bluetooth — optional hardware</div>
+      <p>Leica DISTO D2 / Bosch GLM. Sub-millimeter precision laser measurement via Bluetooth. One-tap readings. The gold standard for validation — highest authority in fusion engine.</p>
+      <div class="accuracy" style="color:var(--cyan);">±0.5mm — sub-millimeter</div>
+      <div class="weight">Fusion weight: 1.0 (highest authority)</div>
+    </div>
+
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--purple);">LAYER 5 — SERVER</div>
+      <h4>Cloud AI (YOLO v2 + Grounding DINO)</h4>
+      <div class="where" style="color:var(--purple);">🖥️ Runs on AWS — async verification</div>
+      <p>Dual-model architecture on 8GB instance. YOLO v2 for fast detection of 15 known classes (~200ms). Grounding DINO for zero-shot detection of any infrastructure via text prompt (~2-5s). Independent second opinion — tamper-resistant.</p>
+      <div class="accuracy" style="color:var(--purple);">YOLO: higher mAP than mobile · DINO: any class</div>
+      <div class="weight">Fusion weight: 0.85 (high authority)</div>
+    </div>
+
+    <div class="layer-card" style="border-left: 3px solid var(--pink);">
+      <div class="layer-num" style="color:var(--pink);">FUTURE — SERVER</div>
+      <h4>Apple Depth Pro (400M params)</h4>
+      <div class="where" style="color:var(--pink);">🖥️ GPU required — planned</div>
+      <p>Zero-shot metric depth estimation. Best boundary accuracy of any depth model. No calibration or reference objects needed — predicts absolute depth from focal length estimation alone. Requires GPU instance.</p>
+      <div class="accuracy" style="color:var(--pink);">δ₁ = 0.89 on SUN-RGBD</div>
+      <div class="weight">Fusion weight: 0.90 (planned)</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ FUSION & CONFIDENCE ═══ -->
+<section class="animate-in">
+  <div class="sec-tag">Fusion Engine</div>
+  <div class="sec-title">How Measurements Get Certified</div>
+  <div class="sec-desc">
+    Multiple sources feed into a weighted fusion algorithm. Agreement creates confidence. Disagreement creates flags.
+  </div>
+
+  <div class="conf-grid">
+    <div class="conf-badge" style="border-left: 3px solid var(--green);">
+      <div class="emoji">🟢</div>
+      <h5 style="color:var(--green);">Verified</h5>
+      <p>≥3 independent sources agree within ±10%. High confidence. Weighted average gives final value. Auto-approved — no manual review needed.</p>
+    </div>
+    <div class="conf-badge" style="border-left: 3px solid var(--yellow);">
+      <div class="emoji">🟡</div>
+      <h5 style="color:var(--yellow);">Probable</h5>
+      <p>2 sources agree, 1 diverges. Medium confidence. Final value from the 2 agreeing sources. Divergent source flagged for investigation.</p>
+    </div>
+    <div class="conf-badge" style="border-left: 3px solid var(--orange);">
+      <div class="emoji">🟠</div>
+      <h5 style="color:var(--orange);">Unverified</h5>
+      <p>Only 1 source available. Accepted but marked for cloud verification. Common when offline — upgrades after server processes the photo.</p>
+    </div>
+    <div class="conf-badge" style="border-left: 3px solid var(--red);">
+      <div class="emoji">🔴</div>
+      <h5 style="color:var(--red);">Flagged</h5>
+      <p>Sources contradict by >20%, or anomaly detector found tamper patterns (fake GPS, flat phone orientation, impossible velocity). Requires re-measurement or PM review.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ YOLO CLASSES ═══ -->
+<section class="animate-in">
+  <div class="sec-tag">Object Detection</div>
+  <div class="sec-title">15 YOLO Detection Classes</div>
+  <div class="sec-desc">Custom-trained on fiber optic infrastructure. Detects, classifies, and measures automatically.</div>
+
+  <div class="layers-grid">
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--green);">ACCESS POINTS</div>
+      <h4>Manholes & Handholes</h4>
+      <p>manhole_cover (EN 124 standard sizes), manhole_open, manhole_chamber, handhole — auto-measures diameter, depth, chamber dimensions.</p>
+    </div>
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--blue);">CONDUIT</div>
+      <h4>Ducts & Pipes</h4>
+      <p>duct_single, duct_bundle, microduct — BS EN 61386 standard sizes. Auto-detects diameter, snaps to nearest standard (100mm, 110mm, 150mm).</p>
+    </div>
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--orange);">CABLE</div>
+      <h4>Fiber & Cable</h4>
+      <p>fiber_cable, cable_tray — detects cable routing, bundle sizes, tray fill ratios for capacity planning.</p>
+    </div>
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--yellow);">EARTHWORKS</div>
+      <h4>Trenches & Excavation</h4>
+      <p>trench — auto-measures width and depth for PG114 compliance verification. Cross-references with spec ranges.</p>
+    </div>
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--purple);">REFERENCE</div>
+      <h4>Calibration Objects</h4>
+      <p>measuring_tape, hard_hat, safety_cone — known real-world sizes used to auto-calibrate depth maps without user input.</p>
+    </div>
+    <div class="layer-card">
+      <div class="layer-num" style="color:var(--red);">DEFECTS</div>
+      <h4>Damage Detection</h4>
+      <p>crack, water_damage — identifies structural issues that need reporting. Flags for immediate attention in the portal.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ REPOSITORIES ═══ -->
+<section class="animate-in">
+  <div class="sec-tag">Codebase</div>
+  <div class="sec-title">6 Repositories</div>
+  <div class="sec-desc">Monorepo-ready independent modules. Each has its own deployment pipeline.</div>
+
+  <div class="repo-grid">
+    <div class="repo-card">
+      <h4>📱 fiber360-mobile</h4>
+      <div class="desc">React Native / Expo field app</div>
+      <div class="stack-row"><span>Framework</span><span>Expo SDK 54 + React Native</span></div>
+      <div class="stack-row"><span>Camera</span><span>VisionCamera + Frame Processors</span></div>
+      <div class="stack-row"><span>AI Models</span><span>TFLite (YOLO + Depth Anything V2)</span></div>
+      <div class="stack-row"><span>AR</span><span>expo-ar-measure (ARKit/ARCore)</span></div>
+      <div class="stack-row"><span>Bluetooth</span><span>react-native-ble-plx</span></div>
+      <div class="stack-row"><span>Offline</span><span>expo-sqlite + sync queue</span></div>
+      <div class="stack-row"><span>3D</span><span>expo-three (Three.js) + PLY/OBJ</span></div>
+      <div class="stack-row"><span>Build</span><span>EAS Build + OTA Updates</span></div>
+    </div>
+
+    <div class="repo-card">
+      <h4>⚡ fiber360-api</h4>
+      <div class="desc">FastAPI backend — 82+ endpoints, 19 route modules</div>
+      <div class="stack-row"><span>Framework</span><span>FastAPI + Pydantic</span></div>
+      <div class="stack-row"><span>Auth</span><span>JWT HS256 + RBAC (3 roles)</span></div>
+      <div class="stack-row"><span>Database</span><span>PostgreSQL + PostGIS (17 tables)</span></div>
+      <div class="stack-row"><span>Storage</span><span>S3 / MinIO (presigned URLs)</span></div>
+      <div class="stack-row"><span>Queue</span><span>Redis + Celery</span></div>
+      <div class="stack-row"><span>Deploy</span><span>Docker + systemd</span></div>
+    </div>
+
+    <div class="repo-card">
+      <h4>🔥 fiber360-worker</h4>
+      <div class="desc">AI inference worker — YOLO + Grounding DINO</div>
+      <div class="stack-row"><span>Runtime</span><span>Python 3.8 + FastAPI</span></div>
+      <div class="stack-row"><span>YOLO v2</span><span>15 classes, ~200ms, ~0.5GB</span></div>
+      <div class="stack-row"><span>Grounding DINO</span><span>Zero-shot, ~2-5s, ~2GB</span></div>
+      <div class="stack-row"><span>Instance</span><span>AWS t3.large (8GB)</span></div>
+      <div class="stack-row"><span>Loading</span><span>Lazy load (DINO on first request)</span></div>
+      <div class="stack-row"><span>Deploy</span><span>systemd + auto-restart</span></div>
+    </div>
+
+    <div class="repo-card">
+      <h4>🌐 fiber360-portal</h4>
+      <div class="desc">Next.js web dashboard for project managers</div>
+      <div class="stack-row"><span>Framework</span><span>Next.js 14 + TypeScript</span></div>
+      <div class="stack-row"><span>Maps</span><span>MapLibre + compliance overlay</span></div>
+      <div class="stack-row"><span>3D Viewer</span><span>Three.js (PLY/OBJ)</span></div>
+      <div class="stack-row"><span>Data</span><span>React Query + REST</span></div>
+      <div class="stack-row"><span>Styling</span><span>Tailwind CSS</span></div>
+    </div>
+
+    <div class="repo-card">
+      <h4>🧰 fiber360-core</h4>
+      <div class="desc">Python ML toolkit — training, export, compliance</div>
+      <div class="stack-row"><span>Training</span><span>YOLO fine-tune (Colab)</span></div>
+      <div class="stack-row"><span>Export</span><span>PyTorch → TFLite (INT8)</span></div>
+      <div class="stack-row"><span>Deploy</span><span>S3 + API + OTA manifest</span></div>
+      <div class="stack-row"><span>Compliance</span><span>PG114, EN 124, BS EN 61386</span></div>
+    </div>
+
+    <div class="repo-card">
+      <h4>🐳 fiber360-infra</h4>
+      <div class="desc">Docker orchestration + deployment configs</div>
+      <div class="stack-row"><span>Compose</span><span>API + Worker + PG + Redis + MinIO</span></div>
+      <div class="stack-row"><span>GPU</span><span>docker-compose.gpu.yml</span></div>
+      <div class="stack-row"><span>DNS</span><span>Cloudflare (fiber360.sowrabh.dev)</span></div>
+      <div class="stack-row"><span>Environments</span><span>dev / staging / prod BOMs</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ CURRENT STATUS ═══ -->
+<section class="animate-in">
+  <div class="sec-tag">Progress</div>
+  <div class="sec-title">What's Built vs What's Next</div>
+
+  <table class="status-grid">
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Status</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Mobile App — Photo AI Mode</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>VisionCamera → YOLO detect → auto-measure → depth overlay → detection badges</td>
+      </tr>
+      <tr>
+        <td>Mobile App — AR Mode</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>ARKit/ARCore + VisionCamera preview + tap-to-measure + camera lifecycle fix</td>
+      </tr>
+      <tr>
+        <td>Mobile App — 3D Scanner</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>Depth capture → point cloud → mesh → PLY/OBJ export. Real photo RGB textures on mesh</td>
+      </tr>
+      <tr>
+        <td>Mobile App — BLE Laser</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>Leica DISTO D2 / Bosch GLM via react-native-ble-plx</td>
+      </tr>
+      <tr>
+        <td>Mobile App — Offline Sync</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>SQLite queue + background sync when connectivity returns</td>
+      </tr>
+      <tr>
+        <td>Mobile App — Survey</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>GPS-tagged site surveys with photo capture + form data</td>
+      </tr>
+      <tr>
+        <td>YOLO v2 Model (15 classes)</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>Trained, exported to TFLite, deployed on-device + server</td>
+      </tr>
+      <tr>
+        <td>API Backend (82+ endpoints)</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>Auth, projects, surveys, measurements, photo upload, sync — all deployed</td>
+      </tr>
+      <tr>
+        <td>Worker — YOLO v2</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>Server-side detection on AWS instance, health check passing</td>
+      </tr>
+      <tr>
+        <td>Worker — Grounding DINO</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>Zero-shot detection deployed, lazy-loaded on first request</td>
+      </tr>
+      <tr>
+        <td>Web Portal — Dashboard</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>Project stats, verification status, active engineers</td>
+      </tr>
+      <tr>
+        <td>Web Portal — Map View</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>MapLibre + compliance overlay + feature status</td>
+      </tr>
+      <tr>
+        <td>Web Portal — 3D Viewer</td>
+        <td><span class="badge done">✅ DONE</span></td>
+        <td>Three.js PLY/OBJ viewer with orbit controls</td>
+      </tr>
+      <tr>
+        <td>EAS Build Pipeline</td>
+        <td><span class="badge active">🔄 BUILDING</span></td>
+        <td>Preview APK building on EAS cloud — standalone, no laptop needed</td>
+      </tr>
+      <tr>
+        <td>Fusion Engine — Full Integration</td>
+        <td><span class="badge active">🔄 ACTIVE</span></td>
+        <td>On-device fusion working. Server fusion + cross-validation in progress</td>
+      </tr>
+      <tr>
+        <td>Measurement Certificates</td>
+        <td><span class="badge planned">📋 PLANNED</span></td>
+        <td>SHA-256 hash chains + JWT signing + PDF report generation</td>
+      </tr>
+      <tr>
+        <td>Depth Pro (Server GPU)</td>
+        <td><span class="badge planned">📋 PLANNED</span></td>
+        <td>Apple's 400M model for metric depth — needs GPU instance</td>
+      </tr>
+      <tr>
+        <td>Active Learning Pipeline</td>
+        <td><span class="badge planned">📋 PLANNED</span></td>
+        <td>Field data → validate in portal → retrain monthly → OTA model push</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ ANTI-TAMPER ═══ -->
+<section class="animate-in">
+  <div class="sec-tag">Security</div>
+  <div class="sec-title">Anti-Tamper Chain</div>
+  <div class="sec-desc">Every measurement carries a cryptographic provenance chain. Tampering breaks the chain.</div>
+
+  <div class="layers-grid">
+    <div class="layer-card" style="border-left: 3px solid var(--green);">
+      <h4>📸 Photo Hash</h4>
+      <p>SHA-256 of original photo bytes captured at measurement time. Any modification (crop, filter, edit) breaks the hash and invalidates the measurement.</p>
+    </div>
+    <div class="layer-card" style="border-left: 3px solid var(--blue);">
+      <h4>📍 GPS + IMU</h4>
+      <p>Lat/lng/altitude with accuracy. Accelerometer + gyroscope snapshot proves phone orientation (pointing at asset vs lying on desk). Detects impossible velocity.</p>
+    </div>
+    <div class="layer-card" style="border-left: 3px solid var(--purple);">
+      <h4>⏱️ Timestamp Chain</h4>
+      <p>Device time + NTP-verified server time. Future timestamps or stale submissions flagged. Can't backdate measurements.</p>
+    </div>
+    <div class="layer-card" style="border-left: 3px solid var(--cyan);">
+      <h4>🔗 Hash Linkage</h4>
+      <p>Combined signature: hash(photoHash + depthHash + GPS + timestamp + measurements). Server stores hashes independently — any field modification breaks the chain.</p>
+    </div>
+    <div class="layer-card" style="border-left: 3px solid var(--orange);">
+      <h4>☁️ Cloud Verification</h4>
+      <p>Server runs same photo through independent AI models. Can't manipulate the cloud — different model, different hardware, different result. Must agree with on-device measurements.</p>
+    </div>
+    <div class="layer-card" style="border-left: 3px solid var(--red);">
+      <h4>🛡️ 8 Anomaly Checks</h4>
+      <p>GPS null-island, IMU flat-phone, future timestamp, photo hash mismatch, impossible velocity, round-number bias, duplicate submission, batch pattern analysis.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<div class="footer">
+  Fiber360 AI Measurement Platform — Architecture Overview — February 2026<br>
+  <span style="color:var(--cyan);">fiber360.sowrabh.dev</span> · 6 repos · 5 measurement layers · Anti-tamper by design
+</div>
+
+<script>
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add('visible');
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

@@ -63,6 +63,37 @@ def parse_ply_header_for_metadata(ply_path: str):
         pass
     return meta
 
+def _filter_point_cloud_outliers(vertices: np.ndarray) -> np.ndarray:
+    """
+    Remove extreme coordinate outliers from raw point clouds using a robust IQR
+    envelope. Only applies when spread looks clearly dominated by outliers.
+    """
+    if vertices is None or len(vertices) < 1000:
+        return vertices
+
+    med = np.median(vertices, axis=0)
+    q1 = np.percentile(vertices, 25, axis=0)
+    q3 = np.percentile(vertices, 75, axis=0)
+    iqr = np.maximum(q3 - q1, 1e-9)
+
+    raw_extent = np.max(vertices, axis=0) - np.min(vertices, axis=0)
+    # 20*IQR keeps most inliers while dropping very distant points.
+    robust_lo = med - 20.0 * iqr
+    robust_hi = med + 20.0 * iqr
+    robust_mask = np.all((vertices >= robust_lo) & (vertices <= robust_hi), axis=1)
+    robust_vertices = vertices[robust_mask]
+    if len(robust_vertices) < 100:
+        return vertices
+
+    robust_extent = np.max(robust_vertices, axis=0) - np.min(robust_vertices, axis=0)
+    raw_max = float(np.max(raw_extent))
+    robust_max = float(np.max(robust_extent))
+
+    # Only trim when outliers dominate scale significantly.
+    if robust_max > 0 and raw_max / robust_max > 8.0:
+        return robust_vertices
+    return vertices
+
 def load_mesh(
     model_path: str,
     decimate_threshold: int = 100000,
@@ -76,10 +107,10 @@ def load_mesh(
     elif model_path.lower().endswith('.ply'):
         metadata = parse_ply_header_for_metadata(model_path)
 
-    # Try to load without materials to save memory
+    # Try mesh-first load path.
     try:
         loaded = trimesh.load(model_path, force='mesh', skip_materials=True, maintain_order=True)
-    except:
+    except Exception:
         loaded = trimesh.load(model_path, force='mesh')
 
     if isinstance(loaded, trimesh.Scene):
@@ -89,13 +120,35 @@ def load_mesh(
     elif isinstance(loaded, trimesh.points.PointCloud):
         # Normalize point clouds into a face-less Trimesh so downstream code can
         # use a single mesh-like interface.
+        pc_vertices = np.asarray(loaded.vertices)
+        pc_vertices = _filter_point_cloud_outliers(pc_vertices)
         mesh = trimesh.Trimesh(
-            vertices=np.asarray(loaded.vertices),
+            vertices=pc_vertices,
             faces=np.empty((0, 3), dtype=np.int64),
             process=False,
         )
     else:
         mesh = loaded
+
+    # Some PLY point-cloud files can become an empty Trimesh when loaded with
+    # force='mesh' depending on trimesh version/plugins. Recover by reloading
+    # without forcing mesh and converting point cloud vertices.
+    if len(mesh.vertices) == 0 and model_path.lower().endswith('.ply'):
+        fallback = trimesh.load(model_path, process=False)
+        if isinstance(fallback, trimesh.points.PointCloud):
+            pc_vertices = np.asarray(fallback.vertices)
+            pc_vertices = _filter_point_cloud_outliers(pc_vertices)
+            mesh = trimesh.Trimesh(
+                vertices=pc_vertices,
+                faces=np.empty((0, 3), dtype=np.int64),
+                process=False,
+            )
+        elif isinstance(fallback, trimesh.Scene):
+            if len(fallback.geometry) == 0:
+                raise ValueError("Loaded PLY scene has no geometry")
+            mesh = trimesh.util.concatenate(list(fallback.geometry.values()))
+        elif hasattr(fallback, "vertices"):
+            mesh = fallback
 
     if (
         not disable_decimation

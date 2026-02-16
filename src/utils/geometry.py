@@ -22,9 +22,11 @@ def find_ground_plane(mesh: trimesh.Trimesh):
     if len(vertices) < 3:
         raise ValueError("Mesh has too few valid vertices for plane fitting")
 
+    is_point_cloud_like = not (hasattr(mesh, 'faces') and len(mesh.faces) > 0)
+
     # 1. Determine which axis is "up" (has most vertical normals), with fallback.
     normals = None
-    if hasattr(mesh, 'vertex_normals'):
+    if hasattr(mesh, 'vertex_normals') and not is_point_cloud_like:
         try:
             normals = np.asarray(mesh.vertex_normals)
             if normals.shape[0] != np.asarray(mesh.vertices).shape[0]:
@@ -42,7 +44,12 @@ def find_ground_plane(mesh: trimesh.Trimesh):
         else:
             up_axis = int(np.argmin(mesh.extents))
     else:
-        up_axis = int(np.argmin(mesh.extents))
+        # For point clouds, extents-based axis is usually more stable than
+        # computed normals. Use robust percentiles to avoid outlier influence.
+        p05 = np.percentile(vertices, 5, axis=0)
+        p95 = np.percentile(vertices, 95, axis=0)
+        robust_extents = p95 - p05
+        up_axis = int(np.argmin(robust_extents))
 
     print(f"      [Debug] Detected Up axis: {['X','Y','Z'][up_axis]}")
 

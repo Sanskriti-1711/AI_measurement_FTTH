@@ -186,10 +186,24 @@ def classify_feature(mesh: trimesh.Trimesh):
     # which can still yield a high hull ratio.
     # If the hull ratio is very low, it's likely an irregular rectangular feature.
 
-    if 0.72 < hull_ratio < 0.85:
-        if max(width, length) < 0.4:
-            return 'duct'
-        return 'circular_manhole'
+    # Circle-like detection for near-isotropic footprints. Some point-cloud
+    # captures produce thin ring-like distributions with low hull_ratio,
+    # so use circle-fit confidence as a secondary signal.
+    duct_max_diameter_m = 0.09
+
+    if xy_ratio <= 1.35:
+        if 0.72 < hull_ratio < 0.90:
+            if max(width, length) < duct_max_diameter_m:
+                return 'duct'
+            return 'circular_manhole'
+        try:
+            circ = measure_circular(mesh)
+            if circ.get('confidence', 0.0) >= 0.84:
+                if max(width, length) < duct_max_diameter_m:
+                    return 'duct'
+                return 'circular_manhole'
+        except Exception:
+            pass
 
     if xy_ratio > 2.5:
         return 'trench'
